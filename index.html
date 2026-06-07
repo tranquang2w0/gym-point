@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⭐ My Points Board</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e17; --surface: #1a1928; --surface2: #221f35;
+    --border: rgba(255,255,255,0.08);
+    --accent: #c9b8ff; --accent2: #ff8fa3; --accent3: #7effd4;
+    --text: #f0eeff; --muted: rgba(240,238,255,0.5);
+    --unlocked: #7effd4; --unlocked-bg: rgba(126,255,212,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding-bottom: 60px; }
+  body::before { content: ''; position: fixed; top: -200px; right: -200px; width: 600px; height: 600px; background: radial-gradient(circle, rgba(201,184,255,0.06) 0%, transparent 70%); pointer-events: none; }
+  body::after  { content: ''; position: fixed; bottom: -100px; left: -100px; width: 400px; height: 400px; background: radial-gradient(circle, rgba(255,143,163,0.05) 0%, transparent 70%); pointer-events: none; }
+  .container { max-width: 480px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
+
+  /* ── Setup screen ── */
+  .setup-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; }
+  .setup-screen.hidden { display: none; }
+  .setup-icon { font-size: 48px; margin-bottom: 16px; }
+  .setup-title { font-family: 'DM Serif Display', serif; font-size: 28px; margin-bottom: 8px; }
+  .setup-title span { font-style: italic; color: var(--accent); }
+  .setup-sub { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 28px; max-width: 320px; }
+  .setup-steps { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; width: 100%; max-width: 360px; text-align: left; margin-bottom: 24px; }
+  .step { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+  .step:last-child { margin-bottom: 0; }
+  .step-num { width: 24px; height: 24px; background: var(--accent); color: var(--bg); border-radius: 50%; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-text { font-size: 13px; line-height: 1.5; color: var(--text); }
+  .step-text a { color: var(--accent); text-decoration: none; }
+  .step-text a:hover { text-decoration: underline; }
+  .step-text code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
+  .input-group { width: 100%; max-width: 360px; margin-bottom: 12px; }
+  .input-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block; text-align: left; }
+  .input-field { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; }
+  .input-field:focus { border-color: rgba(201,184,255,0.4); }
+  .input-field::placeholder { color: var(--muted); }
+  .primary-btn { width: 100%; max-width: 360px; background: var(--accent); color: var(--bg); border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.18s; }
+  .primary-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .primary-btn:active { transform: scale(0.98); }
+  .primary-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .setup-error { font-size: 12px; color: var(--accent2); margin-top: 8px; min-height: 18px; }
+
+  /* ── Main app ── */
+  .app-screen { display: none; }
+  .app-screen.visible { display: block; }
+  .header { padding: 28px 0 20px; text-align: center; }
+  .header-label { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; font-weight: 500; }
+  .header-title { font-family: 'DM Serif Display', serif; font-size: 30px; }
+  .header-title span { font-style: italic; color: var(--accent); }
+
+  .sync-badge { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent3); box-shadow: 0 0 6px var(--accent3); }
+  .sync-dot.offline { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+  .sync-dot.syncing { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .score-hero { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 22px; margin-bottom: 14px; position: relative; overflow: hidden; }
+  .score-hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+  .score-row { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; }
+  .score-num { font-family: 'DM Serif Display', serif; font-size: 60px; line-height: 1; letter-spacing: -2px; }
+  .score-unit { font-size: 15px; color: var(--muted); margin-bottom: 6px; margin-left: 4px; }
+  .next-box { text-align: right; max-width: 175px; }
+  .next-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .next-name { font-size: 13px; color: var(--accent); font-weight: 500; line-height: 1.4; }
+  .next-pts { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .prog-track { background: rgba(255,255,255,0.06); border-radius: 100px; height: 6px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+
+  .section-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin: 18px 0 9px; font-weight: 500; }
+
+  .act-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .act-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 13px; cursor: pointer; text-align: left; transition: all 0.18s; position: relative; overflow: hidden; }
+  .act-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(201,184,255,0.06), transparent); opacity: 0; transition: opacity 0.2s; }
+  .act-btn:hover { border-color: rgba(201,184,255,0.25); transform: translateY(-1px); }
+  .act-btn:hover::before { opacity: 1; }
+  .act-btn:active { transform: scale(0.97); }
+  .act-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .act-emoji { font-size: 20px; margin-bottom: 5px; display: block; }
+  .act-name { font-size: 12px; color: var(--text); font-weight: 500; line-height: 1.3; display: block; margin-bottom: 4px; }
+  .act-pts-badge { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); background: rgba(201,184,255,0.1); border-radius: 20px; padding: 2px 8px; }
+
+  .milestone-list { display: flex; flex-direction: column; gap: 6px; }
+  .milestone { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 11px 15px; display: flex; align-items: center; gap: 11px; }
+  .milestone.unlocked { background: var(--unlocked-bg); border-color: rgba(126,255,212,0.2); }
+  .milestone.next-up { border-color: rgba(201,184,255,0.35); }
+  .milestone-icon { font-size: 20px; min-width: 26px; text-align: center; }
+  .milestone-info { flex: 1; }
+  .milestone-reward { font-size: 13px; font-weight: 500; }
+  .milestone.unlocked .milestone-reward { color: var(--unlocked); }
+  .milestone-pts { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .milestone-status { font-size: 15px; }
+
+  /* ── Log with Remove buttons ── */
+  .log-scroll { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 8px 10px; max-height: 220px; overflow-y: auto; }
+  .log-scroll::-webkit-scrollbar { width: 3px; }
+  .log-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  .log-entry { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid var(--border); animation: fadeIn 0.2s ease; }
+  .log-entry:last-child { border-bottom: none; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+  .log-text { flex: 1; font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .log-plus { color: var(--accent); font-weight: 600; }
+  .log-empty { font-size: 12px; color: var(--muted); font-style: italic; padding: 8px 4px; }
+  .undo-btn {
+    flex-shrink: 0;
+    background: rgba(255,143,163,0.08); border: 1px solid rgba(255,143,163,0.18);
+    border-radius: 8px; color: var(--accent2); font-size: 11px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; padding: 3px 9px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .undo-btn:hover { background: rgba(255,143,163,0.18); border-color: rgba(255,143,163,0.35); }
+  .undo-btn:active { transform: scale(0.95); }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 18px; }
+  .outline-btn { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-size: 12px; font-weight: 500; font-family: 'DM Sans', sans-serif; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+  .outline-btn:hover { border-color: rgba(255,143,163,0.3); color: var(--accent2); }
+  .share-link-btn { flex: 2; background: var(--accent); color: var(--bg); border: none; border-radius: 12px; padding: 11px 14px; font-size: 12px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.18s; }
+  .share-link-btn:hover { opacity: 0.9; }
+
+  /* ── Share modal ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--surface); border: 1px solid rgba(201,184,255,0.15); border-radius: 20px; padding: 24px; width: 100%; max-width: 340px; transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); position: relative; }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; margin-bottom: 6px; }
+  .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+  .copy-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 11px; font-family: monospace; color: var(--accent); word-break: break-all; margin-bottom: 12px; line-height: 1.5; }
+  .modal-share-btn { width: 100%; background: var(--accent); color: var(--bg); border: none; border-radius: 10px; padding: 11px; font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-bottom: 8px; transition: opacity 0.15s; }
+  .modal-share-btn:hover { opacity: 0.9; }
+  .modal-wa-btn { width: 100%; background: #25D366; color: #fff; border: none; border-radius: 10px; padding: 11px; font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: opacity 0.15s; }
+  .modal-wa-btn:hover { opacity: 0.9; }
+  .modal-close { position: absolute; top: 14px; right: 14px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); width: 26px; height: 26px; border-radius: 50%; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif; transition: color 0.15s; }
+  .modal-close:hover { color: var(--text); }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 9px 18px; border-radius: 100px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; opacity: 0; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @keyframes pop { 0%{transform:scale(0.85);opacity:0} 60%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+  .score-num.popped { animation: pop 0.35s ease forwards; }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div class="setup-screen" id="setup-screen">
+  <div class="setup-icon">✨</div>
+  <div class="setup-title">Set up your <span>Points Board</span></div>
+  <div class="setup-sub">You only need to do this once! Get a free API key from JSONBin to save your points online — so your partner can see them live.</div>
+  <div class="setup-steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Go to <a href="https://jsonbin.io" target="_blank">jsonbin.io</a> and create a free account</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">After logging in, go to <strong>API Keys</strong> tab and copy your <code>Secret Key</code></div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Paste it below and tap <strong>Connect</strong> — that's it! 🎉</div>
+    </div>
+  </div>
+  <div class="input-group">
+    <label class="input-label">JSONBin Secret Key</label>
+    <input class="input-field" id="api-key-input" type="password" placeholder="$2b$10$xxxxxxxxxxxxxxxx..." autocomplete="off" />
+  </div>
+  <button class="primary-btn" id="connect-btn" onclick="connectBin()">Connect & Start ✦</button>
+  <div class="setup-error" id="setup-error"></div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app-screen" id="app-screen">
+  <div class="container">
+    <div class="header">
+      <div class="header-label">✦ Reward Board</div>
+      <div class="header-title">Her <span>Points</span></div>
+    </div>
+    <div class="sync-badge">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">Synced</span>
+    </div>
+    <div class="score-hero">
+      <div class="score-row">
+        <div style="display:flex;align-items:flex-end;gap:4px">
+          <div class="score-num" id="score">0</div>
+          <div class="score-unit">pts</div>
+        </div>
+        <div class="next-box">
+          <div class="next-label">Next reward</div>
+          <div class="next-name" id="next-name">—</div>
+          <div class="next-pts" id="next-pts"></div>
+        </div>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+    </div>
+
+    <div class="section-label">Log activity</div>
+    <div class="act-grid" id="act-grid"></div>
+
+    <div class="section-label">Milestones</div>
+    <div class="milestone-list" id="milestone-list"></div>
+
+    <div class="section-label">
+      Activity log
+      <span style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px">— tap Remove to undo a mistake</span>
+    </div>
+    <div class="log-scroll" id="log-scroll"><div class="log-empty">No activity yet 🌙</div></div>
+
+    <div class="btn-row">
+      <button class="outline-btn" onclick="confirmReset()">Reset</button>
+      <button class="share-link-btn" onclick="openShareModal()">📤 Share my progress</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share modal -->
+<div class="modal-overlay" id="share-modal" onclick="closeMIfBg(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShareModal()">×</button>
+    <div class="modal-title">Share your score 💌</div>
+    <div class="modal-sub">Send this viewer link to your partner — they can open it anytime to see your live score!</div>
+    <div class="copy-box" id="viewer-link-display">Loading...</div>
+    <button class="modal-share-btn" onclick="copyViewerLink()">📋 Copy viewer link</button>
+    <button class="modal-wa-btn" onclick="shareWA()">💬 Send via WhatsApp / Zalo</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ACTIVITIES = [
+  { emoji: '🏋️', name: 'Gym session (30 min)', pts: 5 },
+  { emoji: '🔥', name: 'Extra hard session',   pts: 7 },
+  { emoji: '🏠', name: 'Home workout (30 min)', pts: 3 },
+  { emoji: '🧘', name: 'Yoga / walk / run',     pts: 2 },
+  { emoji: '🏆', name: 'Weekly goal bonus',     pts: 8 },
+  { emoji: '🥗', name: 'Two healthy meals',     pts: 1 },
+];
+const MILESTONES = [
+  { pts: 22,  icon: '🎲', label: 'Fun night at home' },
+  { pts: 44,  icon: '🍖', label: 'BBQ / Hot Pot buffet' },
+  { pts: 80,  icon: '👗', label: 'Shopping spree (~$50)' },
+  { pts: 110, icon: '🏕️', label: '2D1N trip (3–4hr drive)' },
+  { pts: 150, icon: '✈️', label: 'Flight ticket (~$80–100)' },
+  { pts: 300, icon: '🎫', label: 'Flight ticket (up to $300)' },
+  { pts: 600, icon: '🚢', label: 'Cruise (Bahamas, Cancún…)' },
+];
+
+const BASE = 'https://api.jsonbin.io/v3/b';
+let API_KEY = '';
+let BIN_ID  = '';
+let total   = 0;
+let log     = [];   // each entry: { id, emoji, name, pts, time }
+let nextId  = 0;
+let saving  = false;
+
+function getViewerURL() {
+  return `viewer.html?bin=${BIN_ID}&key=${encodeURIComponent(API_KEY)}`;
+}
+
+// ── Setup ──────────────────────────────────────────────
+async function connectBin() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { showSetupError('Please enter your API key.'); return; }
+  const btn = document.getElementById('connect-btn');
+  btn.disabled = true; btn.textContent = 'Connecting…';
+  showSetupError('');
+  try {
+    const res = await fetch(BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': key, 'X-Bin-Name': 'girlfriend-points', 'X-Bin-Private': 'false' },
+      body: JSON.stringify({ total: 0, log: [], nextId: 0, lastUpdated: '' })
+    });
+    if (!res.ok) throw new Error('Invalid API key or request failed.');
+    const data = await res.json();
+    BIN_ID = data.metadata.id;
+    API_KEY = key;
+    localStorage.setItem('hpt_key', key);
+    localStorage.setItem('hpt_bin', BIN_ID);
+    showApp();
+  } catch (e) {
+    showSetupError('❌ ' + (e.message || 'Connection failed. Check your key.'));
+    btn.disabled = false; btn.textContent = 'Connect & Start ✦';
+  }
+}
+function showSetupError(msg) { document.getElementById('setup-error').textContent = msg; }
+
+window.addEventListener('DOMContentLoaded', () => {
+  const k = localStorage.getItem('hpt_key');
+  const b = localStorage.getItem('hpt_bin');
+  if (k && b) { API_KEY = k; BIN_ID = b; showApp(); }
+});
+
+function showApp() {
+  document.getElementById('setup-screen').classList.add('hidden');
+  document.getElementById('app-screen').classList.add('visible');
+  buildActivityGrid();
+  loadFromBin();
+}
+
+// ── JSONBin sync ───────────────────────────────────────
+async function loadFromBin() {
+  setSyncState('syncing', 'Syncing…');
+  try {
+    const res = await fetch(`${BASE}/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    total  = data.record.total   || 0;
+    log    = data.record.log     || [];
+    nextId = data.record.nextId  || log.length;
+    setSyncState('online', 'Synced');
+    render();
+  } catch {
+    setSyncState('offline', 'Offline — using local');
+    total  = parseInt(localStorage.getItem('hpt_total_local') || '0');
+    log    = JSON.parse(localStorage.getItem('hpt_log_local')  || '[]');
+    nextId = parseInt(localStorage.getItem('hpt_nextid_local') || '0');
+    render();
+  }
+}
+
+async function saveToBin() {
+  if (saving) return;
+  saving = true;
+  setSyncState('syncing', 'Saving…');
+  localStorage.setItem('hpt_total_local',  total);
+  localStorage.setItem('hpt_log_local',    JSON.stringify(log));
+  localStorage.setItem('hpt_nextid_local', nextId);
+  try {
+    const res = await fetch(`${BASE}/${BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+      body: JSON.stringify({ total, log, nextId, lastUpdated: new Date().toISOString() })
+    });
+    if (!res.ok) throw new Error();
+    setSyncState('online', 'Saved ✓');
+    setTimeout(() => setSyncState('online', 'Synced'), 1500);
+  } catch {
+    setSyncState('offline', 'Saved locally');
+  }
+  saving = false;
+}
+
+function setSyncState(state, label) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot';
+  if (state === 'syncing') dot.classList.add('syncing');
+  if (state === 'offline') dot.classList.add('offline');
+  lbl.textContent = label;
+}
+
+// ── Helpers ────────────────────────────────────────────
+function getNext() { return MILESTONES.find(m => m.pts > total) || null; }
+function getPrev() { return [...MILESTONES].reverse().find(m => m.pts <= total) || null; }
+
+// ── Remove entry ───────────────────────────────────────
+async function removeEntry(id) {
+  const idx = log.findIndex(e => e.id === id);
+  if (idx === -1) return;
+  const entry = log[idx];
+  total = Math.max(0, total - entry.pts);
+  log.splice(idx, 1);
+  render();
+  showToast(`Removed: −${entry.pts} pts ↩`);
+  await saveToBin();
+}
+
+// ── Render ─────────────────────────────────────────────
+function render() {
+  const scoreEl = document.getElementById('score');
+  scoreEl.textContent = total;
+  scoreEl.classList.remove('popped');
+  void scoreEl.offsetWidth;
+  scoreEl.classList.add('popped');
+
+  const next = getNext();
+  const prev = getPrev();
+  if (next) {
+    const base = prev ? prev.pts : 0;
+    const pct  = Math.min(100, Math.round(((total - base) / (next.pts - base)) * 100));
+    document.getElementById('prog').style.width = pct + '%';
+    document.getElementById('next-name').textContent = next.icon + ' ' + next.label;
+    document.getElementById('next-pts').textContent  = (next.pts - total) + ' pts to go';
+  } else {
+    document.getElementById('prog').style.width = '100%';
+    document.getElementById('next-name').textContent = '🎉 All unlocked!';
+    document.getElementById('next-pts').textContent  = '';
+  }
+
+  const ml = document.getElementById('milestone-list');
+  ml.innerHTML = '';
+  MILESTONES.forEach(m => {
+    const unlocked = total >= m.pts;
+    const isNext   = next && next.pts === m.pts;
+    const div = document.createElement('div');
+    div.className = 'milestone' + (unlocked ? ' unlocked' : isNext ? ' next-up' : '');
+    div.innerHTML = `<span class="milestone-icon">${m.icon}</span>
+      <span class="milestone-info">
+        <div class="milestone-reward">${m.label}</div>
+        <div class="milestone-pts">${m.pts} pts${unlocked ? ' — Unlocked! 🎉' : (isNext ? ' — Next ✦' : '')}</div>
+      </span>
+      <span class="milestone-status">${unlocked ? '✅' : (isNext ? '⭐' : '')}</span>`;
+    ml.appendChild(div);
+  });
+
+  const ls = document.getElementById('log-scroll');
+  if (log.length === 0) {
+    ls.innerHTML = '<div class="log-empty">No activity yet 🌙</div>';
+    return;
+  }
+  ls.innerHTML = '';
+  [...log].reverse().forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'log-entry';
+    row.innerHTML = `
+      <div class="log-text">
+        <span class="log-plus">+${entry.pts}</span>
+        &nbsp;${entry.emoji} ${entry.name}
+        &nbsp;<span style="opacity:0.4;font-size:11px">${entry.time}</span>
+      </div>
+      <button class="undo-btn" onclick="removeEntry(${entry.id})">− Remove</button>`;
+    ls.appendChild(row);
+  });
+}
+
+// ── Activity grid ──────────────────────────────────────
+function buildActivityGrid() {
+  const grid = document.getElementById('act-grid');
+  ACTIVITIES.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = 'act-btn';
+    btn.innerHTML = `<span class="act-emoji">${a.emoji}</span>
+      <span class="act-name">${a.name}</span>
+      <span class="act-pts-badge">+${a.pts} pts</span>`;
+    btn.onclick = async () => {
+      total += a.pts;
+      const now  = new Date();
+      const time = now.toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      log.push({ id: nextId++, emoji: a.emoji, name: a.name, pts: a.pts, time });
+      render();
+      showToast(`+${a.pts} pts — great job! 🌟`);
+      await saveToBin();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+async function confirmReset() {
+  if (confirm('Reset all points to 0?')) {
+    total = 0; log = []; nextId = 0;
+    render();
+    await saveToBin();
+    showToast('Points reset 🔄');
+  }
+}
+
+// ── Share modal ────────────────────────────────────────
+function openShareModal() {
+  document.getElementById('viewer-link-display').textContent = getViewerURL();
+  document.getElementById('share-modal').classList.add('open');
+}
+function closeShareModal() { document.getElementById('share-modal').classList.remove('open'); }
+function closeMIfBg(e) { if (e.target === document.getElementById('share-modal')) closeShareModal(); }
+
+function copyViewerLink() {
+  navigator.clipboard.writeText(getViewerURL()).catch(() => {});
+  showToast('Viewer link copied! 📋');
+  closeShareModal();
+}
+function shareWA() {
+  const next = getNext();
+  let msg = `⭐ My Points Board!\n\nI have ${total} points 💪\n`;
+  if (next) msg += `Working toward: ${next.icon} ${next.label} (${next.pts - total} pts to go!)\n\n`;
+  msg += `See my live score here:\n${getViewerURL()}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  closeShareModal();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerHTML = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
