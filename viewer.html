@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💜 Her Points</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e17;
+    --surface: #1a1928;
+    --surface2: #221f35;
+    --border: rgba(255,255,255,0.08);
+    --accent: #c9b8ff;
+    --accent2: #ff8fa3;
+    --accent3: #7effd4;
+    --text: #f0eeff;
+    --muted: rgba(240,238,255,0.5);
+    --unlocked: #7effd4;
+    --unlocked-bg: rgba(126,255,212,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(255,143,163,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .container { max-width: 480px; margin: 0 auto; padding: 0 20px; position: relative; }
+
+  /* No-link screen */
+  .no-link {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 40px 20px;
+  }
+  .no-link-icon { font-size: 48px; margin-bottom: 16px; }
+  .no-link-title { font-family: 'DM Serif Display', serif; font-size: 24px; margin-bottom: 8px; }
+  .no-link-sub { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* Loading */
+  .loading {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+  }
+  .spinner {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--muted); }
+
+  /* Main */
+  .main { display: none; }
+  .main.visible { display: block; }
+
+  .header { padding: 28px 0 16px; text-align: center; }
+  .header-label { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent2); margin-bottom: 6px; font-weight: 500; }
+  .header-title { font-family: 'DM Serif Display', serif; font-size: 30px; }
+  .header-title span { font-style: italic; color: var(--accent2); }
+
+  .live-badge {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; font-size: 11px; color: var(--muted); margin-bottom: 16px;
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent3); box-shadow: 0 0 6px var(--accent3);
+    animation: livepulse 2s ease-in-out infinite;
+  }
+  @keyframes livepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
+
+  .score-hero {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 24px; margin-bottom: 14px;
+    position: relative; overflow: hidden; text-align: center;
+  }
+  .score-hero::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+  }
+  .score-big {
+    font-family: 'DM Serif Display', serif;
+    font-size: 80px; line-height: 1; letter-spacing: -3px;
+    margin-bottom: 4px;
+  }
+  .score-unit { font-size: 16px; color: var(--muted); margin-bottom: 16px; }
+  .prog-track { background: rgba(255,255,255,0.06); border-radius: 100px; height: 8px; overflow: hidden; margin-bottom: 12px; }
+  .prog-fill {
+    height: 100%; border-radius: 100px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .next-reward-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .next-reward-label { font-size: 12px; color: var(--muted); }
+  .next-reward-name { font-size: 13px; font-weight: 500; color: var(--accent2); }
+  .next-reward-pts { font-size: 12px; color: var(--muted); }
+
+  .updated-text { font-size: 11px; color: var(--muted); text-align: center; margin: 8px 0 16px; }
+
+  .section-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin: 18px 0 9px; font-weight: 500; }
+
+  .milestone-list { display: flex; flex-direction: column; gap: 6px; }
+  .milestone {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 11px 15px;
+    display: flex; align-items: center; gap: 11px;
+  }
+  .milestone.unlocked { background: var(--unlocked-bg); border-color: rgba(126,255,212,0.2); }
+  .milestone.next-up { border-color: rgba(255,143,163,0.35); }
+  .milestone-icon { font-size: 20px; min-width: 26px; text-align: center; }
+  .milestone-info { flex: 1; }
+  .milestone-reward { font-size: 13px; font-weight: 500; }
+  .milestone.unlocked .milestone-reward { color: var(--unlocked); }
+  .milestone-pts { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .milestone-status { font-size: 15px; }
+
+  .log-scroll {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px 14px;
+    max-height: 140px; overflow-y: auto;
+  }
+  .log-scroll::-webkit-scrollbar { width: 3px; }
+  .log-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  .log-entry { font-size: 12px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid var(--border); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-empty { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  .refresh-btn {
+    display: block; width: 100%;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px;
+    font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+    color: var(--muted); cursor: pointer; margin-top: 16px; transition: all 0.15s;
+    text-align: center;
+  }
+  .refresh-btn:hover { border-color: rgba(201,184,255,0.3); color: var(--accent); }
+
+  .cheer-box {
+    background: linear-gradient(135deg, rgba(255,143,163,0.08), rgba(201,184,255,0.08));
+    border: 1px solid rgba(255,143,163,0.15);
+    border-radius: 16px; padding: 16px 18px;
+    margin-top: 14px; text-align: center;
+  }
+  .cheer-emoji { font-size: 24px; margin-bottom: 6px; }
+  .cheer-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .cheer-text strong { color: var(--text); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div id="no-link" class="no-link" style="display:none">
+  <div class="no-link-icon">🔗</div>
+  <div class="no-link-title">No link found</div>
+  <div class="no-link-sub">Ask your girlfriend to send you the viewer link from her Points Board app.</div>
+</div>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading her points…</div>
+</div>
+
+<div id="main" class="main">
+  <div class="container">
+    <div class="header">
+      <div class="header-label">✦ Live View</div>
+      <div class="header-title">Her <span>Points</span></div>
+    </div>
+
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span>Live score</span>
+    </div>
+
+    <div class="score-hero">
+      <div class="score-big" id="score">0</div>
+      <div class="score-unit">points</div>
+      <div class="prog-track"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+      <div class="next-reward-row">
+        <span class="next-reward-label">Working toward:</span>
+        <span class="next-reward-name" id="next-name">—</span>
+        <span class="next-reward-pts" id="next-pts"></span>
+      </div>
+    </div>
+
+    <div class="updated-text" id="updated-text">—</div>
+
+    <div class="section-label">Milestones</div>
+    <div class="milestone-list" id="milestone-list"></div>
+
+    <div class="section-label">Recent activity</div>
+    <div class="log-scroll" id="log-scroll"><div class="log-empty">No activity yet 🌙</div></div>
+
+    <div class="cheer-box">
+      <div class="cheer-emoji">💜</div>
+      <div class="cheer-text" id="cheer-text">Loading…</div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</div>
+
+<script>
+const MILESTONES = [
+  { pts: 22,  icon: '🎲', label: 'Fun night at home' },
+  { pts: 44,  icon: '🍖', label: 'BBQ / Hot Pot buffet' },
+  { pts: 80,  icon: '👗', label: 'Shopping spree (~$50)' },
+  { pts: 110, icon: '🏕️', label: '2D1N trip (3–4hr drive)' },
+  { pts: 150, icon: '✈️', label: 'Flight ticket (~$80–100)' },
+  { pts: 300, icon: '🎫', label: 'Flight ticket (up to $300)' },
+  { pts: 600, icon: '🚢', label: 'Cruise (Bahamas, Cancún…)' },
+];
+
+const CHEERS = [
+  "She's working so hard for you two! 💪",
+  "Every session brings a new adventure closer. ✈️",
+  "Look at her go! Make sure to cheer her on. 🎉",
+  "She's crushing it — don't forget to tell her! 💬",
+  "The Bahamas are getting closer one workout at a time. 🌊",
+];
+
+const params = new URLSearchParams(window.location.search);
+const BIN_ID = params.get('bin');
+const API_KEY = params.get('key');
+
+if (!BIN_ID || !API_KEY) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('no-link').style.display = 'flex';
+}
+
+function getNext(total) { return MILESTONES.find(m => m.pts > total) || null; }
+function getPrev(total) { return [...MILESTONES].reverse().find(m => m.pts <= total) || null; }
+
+async function loadData() {
+  if (!BIN_ID || !API_KEY) return;
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': API_KEY }
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const { total, log, lastUpdated } = data.record;
+    render(total || 0, log || [], lastUpdated || '');
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main').classList.add('visible');
+  } catch {
+    document.getElementById('loading').innerHTML = '<div style="text-align:center;padding:40px 20px"><div style="font-size:32px;margin-bottom:12px">😕</div><div style="font-size:14px;color:var(--muted)">Couldn\'t load points.<br>Check your link or try refreshing.</div></div>';
+  }
+}
+
+function render(total, log, lastUpdated) {
+  document.getElementById('score').textContent = total;
+
+  const next = getNext(total);
+  const prev = getPrev(total);
+  if (next) {
+    const base = prev ? prev.pts : 0;
+    const pct = Math.min(100, Math.round(((total - base) / (next.pts - base)) * 100));
+    document.getElementById('prog').style.width = pct + '%';
+    document.getElementById('next-name').textContent = next.icon + ' ' + next.label;
+    document.getElementById('next-pts').textContent = '(' + (next.pts - total) + ' to go)';
+  } else {
+    document.getElementById('prog').style.width = '100%';
+    document.getElementById('next-name').textContent = '🎉 All rewards unlocked!';
+    document.getElementById('next-pts').textContent = '';
+  }
+
+  if (lastUpdated) {
+    const d = new Date(lastUpdated);
+    document.getElementById('updated-text').textContent = 'Last updated: ' + d.toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+  }
+
+  const ml = document.getElementById('milestone-list');
+  ml.innerHTML = '';
+  MILESTONES.forEach(m => {
+    const unlocked = total >= m.pts;
+    const isNext = next && next.pts === m.pts;
+    const div = document.createElement('div');
+    div.className = 'milestone' + (unlocked ? ' unlocked' : isNext ? ' next-up' : '');
+    div.innerHTML = `<span class="milestone-icon">${m.icon}</span>
+      <span class="milestone-info">
+        <div class="milestone-reward">${m.label}</div>
+        <div class="milestone-pts">${m.pts} pts${unlocked ? ' — Unlocked! 🎉' : (isNext ? ' — Next up ✦' : '')}</div>
+      </span>
+      <span class="milestone-status">${unlocked ? '✅' : (isNext ? '⭐' : '')}</span>`;
+    ml.appendChild(div);
+  });
+
+  const ls = document.getElementById('log-scroll');
+  if (!log || log.length === 0) {
+    ls.innerHTML = '<div class="log-empty">No activity yet 🌙</div>';
+  } else {
+    ls.innerHTML = [...log].reverse().slice(0, 15).map(e =>
+      `<div class="log-entry">${e}</div>`
+    ).join('');
+  }
+
+  const cheer = CHEERS[Math.floor(Math.random() * CHEERS.length)];
+  document.getElementById('cheer-text').innerHTML = `<strong>${total} points earned</strong> — ${cheer}`;
+}
+
+loadData();
+// Auto-refresh every 60 seconds
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
